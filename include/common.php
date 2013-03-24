@@ -21,7 +21,7 @@ function chash($str, $salt) {
 	return hash('sha512', $salt . $str);
 }
 
-function remind_mail($subject, $body, $to) { //returns true=ok, false=notok
+function remind_mail($subject, $body, $to, $additional_headers) { //returns true=ok, false=notok
 	$config = $GLOBALS['config'];
 	$from = filter_email($config['email_address']);
 	$subject = filter_name($subject);
@@ -30,6 +30,11 @@ function remind_mail($subject, $body, $to) { //returns true=ok, false=notok
 	$headers = "From: $from\r\n";
 	$headers .= "To: $to\r\n";
 	$headers .= "Content-type: text/html\r\n";
+	
+	foreach($additional_headers as $header => $value) {
+		$headers .= $header . ": " . filter_name($value) . "\r\n";
+	}
+	
 	return mail($to, $subject, $body, $headers);
 }
 
@@ -235,6 +240,18 @@ function login($email, $password) {
 	}
 }
 
+//returns user id on success, false on failure
+function getUserIdByEmail($email) {
+	$email = escape($email);
+	$result = mysql_query("SELECT id FROM users WHERE email = '$email'");
+	
+	if($row = mysql_fetch_array($result)) {
+		return $row[0];
+	} else {
+		return false;
+	}
+}
+
 //true: success
 //string: error message
 function passwordChange($user_id, $password_old, $password_new, $password_conf) {
@@ -278,13 +295,18 @@ function getReminders($user_id) {
 //true: success
 //string: error message
 function createReminder($user_id, $time, $timezone, $subject, $content) {
-	date_default_timezone_set($timezone);
+	if($timezone !== false) {
+		date_default_timezone_set($timezone);
+	}
+	
 	$user_id = escape($user_id);
 	$time = strtotime($time);
 	$subject = escape($subject);
 	$content = escape($content);
 	
-	if($time < time()) {
+	if($time === false) {
+		return "failed to parse time";
+	} else if($time < time()) {
 		return "time needs to be in the future";
 	} else if(strlen($subject) > 256) {
 		return "subject is too long";
