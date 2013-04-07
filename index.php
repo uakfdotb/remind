@@ -12,9 +12,13 @@ if(isset($_GET['logout'])) {
 	//user is logged in
 	$message = "";
 	
+	if(isset($_REQUEST['message'])) {
+		$message = htmlspecialchars($_REQUEST['message']);
+	}
+	
 	if(isset($_POST['action'])) {
-		if($_POST['action'] == "create" && isset($_POST['time']) && isset($_POST['timezone']) && isset($_POST['subject']) && isset($_POST['content'])) {
-			$result = createReminder($_SESSION['id'], $_POST['time'], $_POST['timezone'], $_POST['subject'], $_POST['content']);
+		if($_POST['action'] == "create" && isset($_POST['time']) && isset($_POST['timezone']) && isset($_POST['subject']) && isset($_POST['content']) && isset($_POST['repeat'])) {
+			$result = createReminder($_SESSION['id'], $_POST['time'], $_POST['timezone'], $_POST['subject'], $_POST['content'], $_POST['repeat']);
 			
 			if($result === true) {
 				$message = "Reminder added successfully!";
@@ -24,15 +28,21 @@ if(isset($_GET['logout'])) {
 		} else if($_POST['action'] == "delete" && isset($_POST['id'])) {
 			deleteReminder($_SESSION['id'], $_POST['id']);
 			$message = "Reminder has been deleted!";
-		} else if($_POST['action'] == "password" && isset($_POST['password_old']) && isset($_POST['password_new']) && isset($_POST['password_conf'])) {
-			$result = passwordChange($_SESSION['id'], $_POST['password_old'], $_POST['password_new'], $_POST['password_conf']);
+		} else if($_POST['action'] == "password" && isset($_POST['password_old']) && isset($_POST['password_new']) && isset($_POST['password_conf']) && isset($_POST['timezone'])) {
+			$result = passwordChange($_SESSION['id'], $_POST['password_old'], $_POST['password_new'], $_POST['password_conf'], $_POST['timezone']);
 			
 			if($result === true) {
-				$message = "Password changed successfully.";
+				$message = "Preferences changed successfully.";
 			} else {
 				$message = "Error while changing password: " . $result . ".";
 			}
 		}
+		
+		header('Location: index.php?message=' . urlencode($message));
+	}
+	
+	if(isset($_SESSION['timezone'])) {
+		@date_default_timezone_set($_SESSION['timezone']);
 	}
 	
 	$reminders = getReminders($_SESSION['id']);

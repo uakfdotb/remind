@@ -21,7 +21,7 @@ function chash($str, $salt) {
 	return hash('sha512', $salt . $str);
 }
 
-function remind_mail($subject, $body, $to, $additional_headers) { //returns true=ok, false=notok
+function remind_mail($subject, $body, $to, $additional_headers = array()) { //returns true=ok, false=notok
 	$config = $GLOBALS['config'];
 	$from = filter_email($config['email_address']);
 	$subject = filter_name($subject);
@@ -227,10 +227,15 @@ function register($email) {
 function login($email, $password) {
 	$email = escape($email);
 	
-	$result = mysql_query("SELECT id, password, salt FROM users WHERE email = '$email'");
+	$result = mysql_query("SELECT id, password, salt, timezone FROM users WHERE email = '$email'");
 	
 	if($row = mysql_fetch_array($result)) {
 		if($row[1] == chash($password, $row[2])) {
+			//set current timezone if not empty
+			if(!empty($row[3])) {
+				$_SESSION['timezone'] = $row[3];
+			}
+			
 			return $row[0];
 		} else {
 			return false;
@@ -252,16 +257,33 @@ function getUserIdByEmail($email) {
 	}
 }
 
+//returns timezone on success or blank string
+function getUserTimezone($user_id) {
+	$user_id = escape($user_id);
+	$result = mysql_query("SELECT timezone FROM users WHERE id = '$user_id'");
+	
+	if($row = mysql_fetch_array($result)) {
+		return $row[0];
+	} else {
+		return '';
+	}
+}
+
 //true: success
 //string: error message
-function passwordChange($user_id, $password_old, $password_new, $password_conf) {
+function passwordChange($user_id, $password_old, $password_new, $password_conf, $timezone) {
 	if($password_new != $password_conf) {
 		return "passwords do not match";
 	}
+	
+	if(strlen($password_new) != 0 && strlen($password_new) < 6) {
+		return "new password is too short";
+	}
 
 	$user_id = escape($user_id);
-	$result = mysql_query("SELECT password, salt FROM users WHERE id = '$user_id'");
 	
+	$result = mysql_query("SELECT password, salt FROM users WHERE id = '$user_id'");
+
 	if($row = mysql_fetch_array($result)) {
 		if($row[0] != chash($password_old, $row[1])) {
 			return "invalid password";
@@ -270,11 +292,18 @@ function passwordChange($user_id, $password_old, $password_new, $password_conf) 
 		return "invalid password";
 	}
 	
-	$salt = secure_random_bytes(32);
-	$saltHex = bin2hex($salt);
-	$passwordHex = chash($password_new, $saltHex);
+	if(strlen($password_new) != 0) {
+		$salt = secure_random_bytes(32);
+		$saltHex = bin2hex($salt);
+		$passwordHex = chash($password_new, $saltHex);
+		
+		mysql_query("UPDATE users SET password = '$passwordHex', salt = '$saltHex' WHERE id = '$user_id'");
+	}
 	
-	mysql_query("UPDATE users SET password = '$passwordHex', salt = '$saltHex' WHERE id = '$user_id'");
+	$timezone = escape($timezone);
+	mysql_query("UPDATE users SET timezone = '$timezone' WHERE id = '$user_id'");
+	$_SESSION['timezone'] = $timezone;
+	
 	return true;
 }
 
@@ -294,9 +323,14 @@ function getReminders($user_id) {
 
 //true: success
 //string: error message
-function createReminder($user_id, $time, $timezone, $subject, $content) {
+//repeat: one of false/0/'', "hour", "week", "day", "month"
+function createReminder($user_id, $time, $timezone, $subject, $content, $repeat = false) {
 	if($timezone !== false) {
-		date_default_timezone_set($timezone);
+		@date_default_timezone_set($timezone);
+	}
+	
+	if($repeat !== "hour" && $repeat !== "week" && $repeat !== "day" && $repeat !== "month") {
+		$repeat = '';
 	}
 	
 	$user_id = escape($user_id);
@@ -314,7 +348,7 @@ function createReminder($user_id, $time, $timezone, $subject, $content) {
 		return "content is too long";
 	}
 	
-	mysql_query("INSERT INTO reminders (user_id, time, title, content) VALUES ('$user_id', '$time', '$subject', '$content')");
+	mysql_query("INSERT INTO reminders (user_id, time, title, content, `repeat`) VALUES ('$user_id', '$time', '$subject', '$content', '$repeat')");
 	return true;
 }
 

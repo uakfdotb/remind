@@ -6,11 +6,19 @@ include("include/session.php");
 include("include/dbconnect.php");
 
 $time = time();
-$result = mysql_query("SELECT reminders.id, users.email, reminders.title, reminders.content FROM reminders LEFT JOIN users ON reminders.user_id = users.id WHERE reminders.time < $time");
+$result = mysql_query("SELECT reminders.id, users.email, reminders.title, reminders.content, reminders.`repeat`, reminders.time FROM reminders LEFT JOIN users ON reminders.user_id = users.id WHERE reminders.time < $time");
 
 while($row = mysql_fetch_array($result)) {
 	remind_mail("[Remind] " . $row[2], $row[3], $row[1]);
-	mysql_query("DELETE FROM reminders WHERE id = '" . $row[0] . "'");
+	
+	if($row[4] == "hour" || $row[4] == "day" || $row[4] == "month" || $row[4] == "week") {
+		$rem_time = $row[5];
+		$rem_date = date(DATE_RSS, $rem_time);
+		$rem_time = strtotime($rem_date . " +1 " . $row[4]);
+		mysql_query("UPDATE reminders SET reminders.time = '$rem_time' WHERE id = '" . $row[0] . "'");
+	} else {
+		mysql_query("DELETE FROM reminders WHERE id = '" . $row[0] . "'");
+	}
 }
 
 if($config['email_scheduling']) {
@@ -42,11 +50,16 @@ if($config['email_scheduling']) {
 					
 					//find the user
 					$user_id = getUserIdByEmail($from);
+					$timezone = getUserTimezone($user_id);
+					
+					if(!empty($timezone)) {
+						@date_default_timezone_set($timezone);
+					}
 					
 					if($user_id !== false) {
 						if(substr($to, 0, 2) == "at" || substr($to, 0, 5) == "after") {
 							if(substr($to, 0, 2) == "at") {
-								$time = str_replace(".", " ", substr($to, 2));
+								$time = substr($to, 2);
 							} else {
 								$time = "+" . str_replace(array(".", "hr"), array(" ", "hour"), substr($to, 5));
 							}

@@ -23,16 +23,17 @@
 <input type="hidden" name="action" value="create" />
 Subject: <input type="text" name="subject" />
 <br />Time: <input type="text" name="time" /> (most formats are accepted; ex: Jan 1, 2013 5:00 pm)
-<br />Time zone: <input id="tztarget" type="text" name="timezone" />
+<br />Time zone: <input id="tztarget1" type="text" name="timezone" />
 <br />Message: <textarea rows="6" cols="100" name="content"></textarea>
+<br />Repeat: <select name="repeat">
+	<option value="" selected>Off</option>
+	<option value="hour">Hourly</option>
+	<option value="day">Daily</option>
+	<option value="week">Weekly</option>
+	<option value="month">Monthly</option>
+	</select>
 <br /><input type="submit" value="Create reminder" />
 </form>
-
-<script>
-$().ready(function() {
-	$("#tztarget").val(jstz.determine().name());
-});
-</script>
 
 <h3>Account management</h3>
 
@@ -41,9 +42,11 @@ $().ready(function() {
 <form method="post" action="index.php" />
 <input type="hidden" name="action" value="password" />
 Old password: <input type="password" name="password_old" />
-<br />New password: <input type="password" name="password_new" />
+<br />New password: <input type="password" name="password_new" /> leave blank to keep current password
 <br />Confirm new password: <input type="password" name="password_conf" />
-<br /><input type="submit" value="Change password" />
+<br />Time zone: <input id="tztarget2" type="text" name="timezone" />
+	<? if(isset($_SESSION['timezone'])) { ?>current timezone: <?= htmlspecialchars($_SESSION['timezone']) ?><? } ?>
+<br /><input type="submit" value="Change password / timezone" />
 </form>
 
 <h3>Manage reminders</h3>
@@ -72,6 +75,13 @@ Old password: <input type="password" name="password_old" />
 </table>
 
 <p><a href="index.php?logout">Click here to logout.</a></p>
+
+<script>
+$().ready(function() {
+	$("#tztarget1").val(jstz.determine().name());
+	$("#tztarget2").val(jstz.determine().name());
+});
+</script>
 
 </body>
 </html>
