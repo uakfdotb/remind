@@ -4,6 +4,7 @@ include("config.php");
 include("include/common.php");
 include("include/session.php");
 include("include/dbconnect.php");
+include("include/preferences.php");
 
 if(isset($_GET['logout'])) {
 	session_unset();
@@ -36,6 +37,9 @@ if(isset($_GET['logout'])) {
 			} else {
 				$message = "Error while changing password: " . $result . ".";
 			}
+		} else if($_POST['action'] == "postpone" && isset($_POST['id']) && isset($_POST['time']) && isset($_POST['time_type'])) {
+			postponeReminder($_SESSION['id'], $_POST['id'], $_POST['time'], $_POST['time_type']);
+			$message = "Reminder has been postponed!";
 		}
 		
 		header('Location: index.php?message=' . urlencode($message));
@@ -63,6 +67,14 @@ if(isset($_GET['logout'])) {
 		
 		if($result !== false) {
 			$_SESSION['id'] = $result;
+			
+			//set timezone
+			$timezone = getPreference($_SESSION['id'], "timezone");
+			
+			if($timezone !== false) {
+				$_SESSION['timezone'] = $timezone;
+			}
+			
 			header('Location: index.php');
 		} else {
 			get_page("index_login", array('message' => 'Error: login failed.'));

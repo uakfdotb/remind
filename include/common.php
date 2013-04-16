@@ -227,15 +227,10 @@ function register($email) {
 function login($email, $password) {
 	$email = escape($email);
 	
-	$result = mysql_query("SELECT id, password, salt, timezone FROM users WHERE email = '$email'");
+	$result = mysql_query("SELECT id, password, salt FROM users WHERE email = '$email'");
 	
 	if($row = mysql_fetch_array($result)) {
 		if($row[1] == chash($password, $row[2])) {
-			//set current timezone if not empty
-			if(!empty($row[3])) {
-				$_SESSION['timezone'] = $row[3];
-			}
-			
 			return $row[0];
 		} else {
 			return false;
@@ -353,6 +348,17 @@ function createReminder($user_id, $time, $timezone, $subject, $content, $repeat 
 }
 
 function deleteReminder($user_id, $id) {
+	$user_id = escape($user_id);
+	$id = escape($id);
+	mysql_query("DELETE FROM reminders WHERE user_id = '$user_id' AND id = '$id'");
+}
+
+function postponeReminder($user_id, $id, $time, $time_type) {
+	$new_time = "";
+	
+	if($time_type = "hour") {
+		
+	}
 	$user_id = escape($user_id);
 	$id = escape($id);
 	mysql_query("DELETE FROM reminders WHERE user_id = '$user_id' AND id = '$id'");

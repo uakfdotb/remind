@@ -58,6 +58,7 @@ Old password: <input type="password" name="password_old" />
 	<th>Time</th>
 	<th>Subject</th>
 	<th>Delete</th>
+	<th>Postpone</th>
 </tr>
 <? foreach($reminders as $reminder) { ?>
 <tr>
@@ -68,6 +69,19 @@ Old password: <input type="password" name="password_old" />
 		<input type="hidden" name="action" value="delete" />
 		<input type="hidden" name="id" value="<?= $reminder['id'] ?>" />
 		<input type="submit" value="Delete" />
+		</form>
+	</td>
+	<td>
+		<form method="post" action="index.php">
+		<input type="hidden" name="action" value="postpone" />
+		<input type="hidden" name="id" value="<?= $reminder['id'] ?>" />
+		<input type="text" name="time" />
+		<select name="time_type">
+			<option value="hour">hours</option>
+			<option value="day">days</option>
+			<option value="minutes">minute</option>
+		</select>
+		<input type="submit" value="Postpone" />
 		</form>
 	</td>
 </tr>
