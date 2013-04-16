@@ -354,14 +354,36 @@ function deleteReminder($user_id, $id) {
 }
 
 function postponeReminder($user_id, $id, $time, $time_type) {
-	$new_time = "";
+	//determine whether we should postpone in addition to reminder time or measured from current time
+	$postponeCurrent = getPreference($user_id, 'postpone_current') === 'yes';
 	
-	if($time_type = "hour") {
-		
+	$new_time = $postponeCurrent ? time() : "time";
+	$time = escape($time);
+	
+	if($time_type == "hour" || $time_type == "minute" || $time_type == "day") {
+		if($postponeCurrent) {
+			$new_time = strtotime("+ $time $time_type");
+			
+			if($new_time === false) {
+				//if failed, then don't change anything
+				$new_time = "time";
+			}
+		} else {
+			//just add on the number of seconds represented
+			
+			if($time_type == "hour") {
+				$new_time .= "+3600";
+			} else if($time_type == "minute") {
+				$new_time .= "+60";
+			} else if($time_type == "day") {
+				$new_time .= "+" . (3600 * 24);
+			}
+		}
 	}
+	
 	$user_id = escape($user_id);
 	$id = escape($id);
-	mysql_query("DELETE FROM reminders WHERE user_id = '$user_id' AND id = '$id'");
+	mysql_query("UPDATE reminders SET time = $new_time WHERE user_id = '$user_id' AND id = '$id'");
 }
 
 //secure_random_bytes from https://github.com/GeorgeArgyros/Secure-random-bytes-in-PHP

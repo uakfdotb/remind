@@ -75,7 +75,7 @@ Old password: <input type="password" name="password_old" />
 		<form method="post" action="index.php">
 		<input type="hidden" name="action" value="postpone" />
 		<input type="hidden" name="id" value="<?= $reminder['id'] ?>" />
-		<input type="text" name="time" />
+		<input type="text" name="time" size="3" />
 		<select name="time_type">
 			<option value="hour">hours</option>
 			<option value="day">days</option>
